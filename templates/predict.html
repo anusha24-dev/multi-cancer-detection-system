@@ -1,0 +1,572 @@
+{% extends "base.html" %}
+
+{% block title %}AI Analysis - Multi Cancer Detection{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1><i class="fas fa-microscope"></i> AI-Powered Cancer Detection</h1>
+        <p>Choose a specialized AI model and upload medical images for analysis</p>
+        
+        <!-- System Status -->
+        <div class="system-status">
+            <div class="status-indicator">
+                <i class="fas fa-server"></i>
+                <span class="status-text">
+                    <strong>{{ loaded_models|length }}/{{ cancer_models|length }}</strong> AI Models Available
+                </span>
+                <div class="status-badge {% if loaded_models|length == cancer_models|length %}all-active{% else %}partial{% endif %}">
+                    {% if loaded_models|length == cancer_models|length %}
+                        <i class="fas fa-check-circle"></i> All Systems Operational
+                    {% else %}
+                        <i class="fas fa-exclamation-triangle"></i> {{ cancer_models|length - loaded_models|length }} Models Loading
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Selection Grid -->
+    <div class="models-selection">
+        <h2>Select AI Model</h2>
+        <div class="models-grid">
+            {% for model_key, model_info in cancer_models.items() %}
+            <div class="model-selector {% if model_key not in loaded_models %}unavailable{% endif %}">
+                <div class="model-icon-wrapper">
+                    <div class="model-icon">
+                        {% if model_key == 'brain' %}
+                            <i class="fas fa-brain"></i>
+                        {% elif model_key == 'lung' %}
+                            <i class="fas fa-lungs"></i>
+                        {% elif model_key == 'breast' %}
+                            <i class="fas fa-ribbon"></i>
+                        {% elif model_key == 'skin' %}
+                            <i class="fas fa-hand-paper"></i>
+                        {% elif model_key == 'colon' %}
+                            <i class="fas fa-search"></i>
+                        {% elif model_key == 'liver' %}
+                            <i class="fas fa-liver"></i>
+                        {% else %}
+                            <i class="fas fa-microscope"></i>
+                        {% endif %}
+                    </div>
+                    <div class="model-status {% if model_key in loaded_models %}active{% else %}inactive{% endif %}">
+                        {% if model_key in loaded_models %}
+                            <i class="fas fa-check-circle"></i>
+                        {% else %}
+                            <i class="fas fa-clock"></i>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <h3>{{ model_info.name }}</h3>
+                <p>{{ model_info.description }}</p>
+                
+                <div class="model-details">
+                    <div class="detail-item">
+                        <i class="fas fa-list"></i>
+                        <span>{{ model_info.classes|length }} Detection Classes</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span>95%+ Accuracy</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-bolt"></i>
+                        <span>~30s Analysis</span>
+                    </div>
+                </div>
+                
+                <div class="detection-classes">
+                    <h4>Detection Categories:</h4>
+                    <ul>
+                        {% for class_id, class_name in model_info.classes.items() %}
+                        <li>{{ class_name }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                {% if model_key in loaded_models %}
+                    <a href="{{ url_for('predict_model', model_type=model_key) }}" class="btn btn-primary btn-block">
+                        <i class="fas fa-play"></i> Use This Model
+                    </a>
+                {% else %}
+                    <button class="btn btn-secondary btn-block" disabled>
+                        <i class="fas fa-hourglass-half"></i> Model Loading...
+                    </button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Quick Info Section -->
+    <div class="info-section">
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-icon">
+                    <i class="fas fa-upload"></i>
+                </div>
+                <h3>Upload Guidelines</h3>
+                <ul>
+                    <li>Supported formats: JPEG, PNG, TIFF, DICOM</li>
+                    <li>Maximum file size: 16MB</li>
+                    <li>High-resolution images preferred</li>
+                    <li>Ensure proper image orientation</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h3>AI Processing</h3>
+                <ul>
+                    <li>Advanced convolutional neural networks</li>
+                    <li>Multi-class cancer detection</li>
+                    <li>Confidence scoring system</li>
+                    <li>Real-time image analysis</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h3>Results & Reports</h3>
+                <ul>
+                    <li>Detailed classification results</li>
+                    <li>Confidence percentage scores</li>
+                    <li>Visual highlighting of areas</li>
+                    <li>Downloadable analysis reports</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Privacy & Security</h3>
+                <ul>
+                    <li>HIPAA-compliant data handling</li>
+                    <li>Encrypted file transmission</li>
+                    <li>Secure cloud processing</li>
+                    <li>Automatic data deletion options</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical Disclaimer -->
+    <div class="disclaimer-section">
+        <div class="disclaimer-card">
+            <div class="disclaimer-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="disclaimer-content">
+                <h3>Important Medical Disclaimer</h3>
+                <p>This AI system is designed to assist healthcare professionals and is not intended to replace professional medical diagnosis, treatment, or advice. Always consult with qualified healthcare providers for medical decisions. The AI analysis should be used as a supplementary tool only.</p>
+                
+                <div class="disclaimer-points">
+                    <div class="point">
+                        <i class="fas fa-user-md"></i>
+                        <span>For healthcare professional use</span>
+                    </div>
+                    <div class="point">
+                        <i class="fas fa-stethoscope"></i>
+                        <span>Supplementary diagnostic tool</span>
+                    </div>
+                    <div class="point">
+                        <i class="fas fa-clipboard-check"></i>
+                        <span>Always verify with clinical assessment</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem 0;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.page-header p {
+    font-size: 1.2rem;
+    color: var(--gray-600);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.system-status {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+.status-indicator {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.5rem;
+    box-shadow: var(--shadow-md);
+    border: 2px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all var(--transition-normal);
+}
+
+.status-indicator:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.status-indicator i {
+    font-size: 1.2rem;
+    color: var(--primary-blue);
+}
+
+.status-text {
+    color: var(--gray-700);
+    font-weight: 500;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-badge.all-active {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.status-badge.partial {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.models-selection {
+    margin-bottom: 4rem;
+}
+
+.models-selection h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--gray-800);
+}
+
+.models-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+}
+
+.model-selector {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-normal);
+    border: 2px solid var(--gray-200);
+    position: relative;
+}
+
+.model-selector:not(.unavailable) {
+    border-left: 4px solid var(--primary-blue);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.02), rgba(147, 197, 253, 0.02));
+}
+
+.model-selector:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--primary-blue);
+}
+
+.model-selector:not(.unavailable):hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 197, 253, 0.05));
+    border-left-color: var(--primary-purple);
+}
+
+.model-selector.unavailable {
+    opacity: 0.6;
+    background: var(--gray-50);
+}
+
+.model-icon-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.model-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-size: 2rem;
+}
+
+.model-status {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    border: 2px solid var(--white);
+}
+
+.model-status.active {
+    background: var(--success-color);
+    color: var(--white);
+}
+
+.model-status.inactive {
+    background: var(--gray-400);
+    color: var(--white);
+}
+
+.model-selector h3 {
+    text-align: center;
+    margin-bottom: 1rem;
+    color: var(--gray-800);
+}
+
+.model-selector p {
+    text-align: center;
+    color: var(--gray-600);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.model-details {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-600);
+    font-size: 0.85rem;
+}
+
+.detail-item i {
+    color: var(--primary-blue);
+    width: 16px;
+}
+
+.detection-classes {
+    margin-bottom: 2rem;
+}
+
+.detection-classes h4 {
+    font-size: 0.9rem;
+    color: var(--gray-700);
+    margin-bottom: 0.75rem;
+}
+
+.detection-classes ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.detection-classes li {
+    padding: 0.3rem 0;
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    position: relative;
+    padding-left: 1rem;
+}
+
+.detection-classes li:before {
+    content: "•";
+    color: var(--primary-blue);
+    position: absolute;
+    left: 0;
+}
+
+.info-section {
+    margin-bottom: 4rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+}
+
+.info-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    text-align: center;
+    transition: all var(--transition-normal);
+}
+
+.info-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.info-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--gradient-secondary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: var(--white);
+    font-size: 1.5rem;
+}
+
+.info-card h3 {
+    margin-bottom: 1rem;
+    color: var(--gray-800);
+}
+
+.info-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+
+.info-card li {
+    padding: 0.4rem 0;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.info-card li:before {
+    content: "✓";
+    color: var(--success-color);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+.disclaimer-section {
+    margin-bottom: 2rem;
+}
+
+.disclaimer-card {
+    background: linear-gradient(135deg, #fee2e2 0%, #fef3c7 100%);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    border-left: 4px solid var(--warning-color);
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.disclaimer-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--warning-color);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.disclaimer-content {
+    flex: 1;
+}
+
+.disclaimer-content h3 {
+    color: var(--gray-800);
+    margin-bottom: 1rem;
+}
+
+.disclaimer-content p {
+    color: var(--gray-700);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.disclaimer-points {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.point {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-700);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.point i {
+    color: var(--warning-color);
+}
+
+@media (max-width: 768px) {
+    .models-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .disclaimer-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .disclaimer-points {
+        grid-template-columns: 1fr;
+    }
+    
+    .page-header h1 {
+        font-size: 2rem;
+    }
+}
+</style>
+{% endblock %}

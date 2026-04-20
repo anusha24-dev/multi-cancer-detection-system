@@ -1,0 +1,753 @@
+{% extends "base.html" %}
+
+{% block title %}{{ model_info.name }} - Multi Cancer Detection{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Model Header -->
+    <div class="model-header">
+        <div class="model-info">
+            <div class="model-icon-large">
+                {% if model_type == 'brain' %}
+                    <i class="fas fa-brain"></i>
+                {% elif model_type == 'lung' %}
+                    <i class="fas fa-lungs"></i>
+                {% elif model_type == 'breast' %}
+                    <i class="fas fa-ribbon"></i>
+                {% elif model_type == 'skin' %}
+                    <i class="fas fa-hand-paper"></i>
+                {% elif model_type == 'colon' %}
+                    <i class="fas fa-search"></i>
+                {% elif model_type == 'liver' %}
+                    <i class="fas fa-liver"></i>
+                {% else %}
+                    <i class="fas fa-microscope"></i>
+                {% endif %}
+            </div>
+            <div class="model-details">
+                <h1>{{ model_info.name }}</h1>
+                <p>{{ model_info.description }}</p>
+                <div class="model-specs">
+                    <span class="spec-item">
+                        <i class="fas fa-list"></i> {{ model_info.classes|length }} Detection Classes
+                    </span>
+                    <span class="spec-item">
+                        <i class="fas fa-chart-line"></i> 95%+ Accuracy
+                    </span>
+                    <span class="spec-item">
+                        <i class="fas fa-bolt"></i> ~30s Analysis
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="{{ url_for('predict_page') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Back to Models
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Detection Classes Info -->
+    <div class="classes-info">
+        <h3><i class="fas fa-list-ul"></i> Detection Categories</h3>
+        <div class="classes-grid">
+            {% for class_id, class_name in model_info.classes.items() %}
+            <div class="class-item">
+                <div class="class-number">{{ class_id + 1 }}</div>
+                <div class="class-name">{{ class_name }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="upload-section">
+        <div class="upload-card">
+            <h2><i class="fas fa-cloud-upload-alt"></i> Upload Medical Image for Analysis</h2>
+            <p>Upload your medical image file and our AI will analyze it for {{ model_info.name.lower() }}</p>
+            
+            <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="upload-text">
+                        <h3>Drag & Drop your image here</h3>
+                        <p>or <span class="browse-link">browse files</span></p>
+                    </div>
+                    <input type="file" 
+                           name="file" 
+                           id="fileInput" 
+                           accept=".jpg,.jpeg,.png,.gif,.bmp,.tiff,.dcm" 
+                           required 
+                           style="display: none;">
+                    <div class="upload-requirements">
+                        <div class="req-item">
+                            <i class="fas fa-check"></i> JPEG, PNG, TIFF, DICOM formats
+                        </div>
+                        <div class="req-item">
+                            <i class="fas fa-check"></i> Maximum 16MB file size
+                        </div>
+                        <div class="req-item">
+                            <i class="fas fa-check"></i> High resolution preferred
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="file-preview" id="filePreview" style="display: none;">
+                    <div class="preview-header">
+                        <h4><i class="fas fa-image"></i> Selected Image</h4>
+                        <button type="button" class="remove-file" id="removeFile">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="preview-content">
+                        <img id="previewImage" src="" alt="Preview">
+                        <div class="file-info">
+                            <div class="file-name" id="fileName"></div>
+                            <div class="file-size" id="fileSize"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg btn-block" id="analyzeBtn" disabled>
+                    <i class="fas fa-brain"></i> Analyze with AI
+                    <div class="loading-spinner" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Guidelines Section -->
+    <div class="guidelines-section">
+        <div class="guidelines-grid">
+            <div class="guideline-card">
+                <div class="guideline-icon">
+                    <i class="fas fa-image"></i>
+                </div>
+                <h3>Image Quality Guidelines</h3>
+                <ul>
+                    <li>Use high-resolution images (minimum 256x256 pixels)</li>
+                    <li>Ensure proper contrast and brightness</li>
+                    <li>Avoid motion blur or artifacts</li>
+                    <li>Include relevant anatomical landmarks</li>
+                </ul>
+            </div>
+            
+            <div class="guideline-card">
+                <div class="guideline-icon">
+                    <i class="fas fa-file-medical"></i>
+                </div>
+                <h3>Supported Image Types</h3>
+                <ul>
+                    {% if model_type == 'brain' %}
+                        <li>T1-weighted MRI scans</li>
+                        <li>T2-weighted MRI scans</li>
+                        <li>FLAIR MRI sequences</li>
+                        <li>Contrast-enhanced MRI</li>
+                    {% elif model_type == 'lung' %}
+                        <li>Chest CT scans</li>
+                        <li>High-resolution CT (HRCT)</li>
+                        <li>Contrast-enhanced CT</li>
+                        <li>Low-dose screening CT</li>
+                    {% elif model_type == 'breast' %}
+                        <li>Digital mammography</li>
+                        <li>Breast ultrasound</li>
+                        <li>Breast MRI</li>
+                        <li>Tomosynthesis (3D mammography)</li>
+                    {% elif model_type == 'skin' %}
+                        <li>Dermoscopic images</li>
+                        <li>Clinical photographs</li>
+                        <li>High-resolution skin lesion images</li>
+                        <li>Polarized light images</li>
+                    {% elif model_type == 'colon' %}
+                        <li>Colonoscopy images</li>
+                        <li>White light endoscopy</li>
+                        <li>Narrow band imaging (NBI)</li>
+                        <li>Chromoendoscopy images</li>
+                    {% elif model_type == 'liver' %}
+                        <li>Abdominal CT scans</li>
+                        <li>Liver MRI</li>
+                        <li>Contrast-enhanced imaging</li>
+                        <li>Hepatobiliary phase images</li>
+                    {% else %}
+                        <li>Medical CT scans</li>
+                        <li>MRI images</li>
+                        <li>X-ray images</li>
+                        <li>Ultrasound images</li>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <div class="guideline-card">
+                <div class="guideline-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h3>Analysis Process</h3>
+                <ul>
+                    <li>Image preprocessing and normalization</li>
+                    <li>Deep learning model inference</li>
+                    <li>Confidence score calculation</li>
+                    <li>Result visualization and reporting</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical Disclaimer -->
+    <div class="disclaimer">
+        <div class="disclaimer-content">
+            <div class="disclaimer-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="disclaimer-text">
+                <h4>Medical Disclaimer</h4>
+                <p>This AI analysis is for research and educational purposes. Results should not be used as the sole basis for medical diagnosis or treatment decisions. Always consult with qualified healthcare professionals for medical advice.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.model-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.model-info {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.model-icon-large {
+    width: 100px;
+    height: 100px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-size: 3rem;
+    flex-shrink: 0;
+}
+
+.model-details h1 {
+    margin-bottom: 0.5rem;
+    color: var(--gray-800);
+}
+
+.model-details p {
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+    max-width: 500px;
+}
+
+.model-specs {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.spec-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.spec-item i {
+    color: var(--primary-blue);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.classes-info {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.classes-info h3 {
+    margin-bottom: 1.5rem;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.classes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.class-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--primary-blue);
+}
+
+.class-number {
+    width: 30px;
+    height: 30px;
+    background: var(--primary-blue);
+    color: var(--white);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.class-name {
+    color: var(--gray-700);
+    font-weight: 500;
+}
+
+.upload-section {
+    margin-bottom: 3rem;
+}
+
+.upload-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    text-align: center;
+}
+
+.upload-card h2 {
+    margin-bottom: 0.5rem;
+    color: var(--gray-800);
+}
+
+.upload-card > p {
+    color: var(--gray-600);
+    margin-bottom: 2rem;
+}
+
+.upload-area {
+    border: 3px dashed var(--gray-300);
+    border-radius: var(--radius-lg);
+    padding: 3rem 2rem;
+    margin-bottom: 2rem;
+    transition: all var(--transition-normal);
+    cursor: pointer;
+    position: relative;
+}
+
+.upload-area:hover {
+    border-color: var(--primary-blue);
+    background: var(--gray-50);
+}
+
+.upload-area.dragover {
+    border-color: var(--primary-blue);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.upload-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--white);
+    font-size: 2rem;
+}
+
+.upload-text h3 {
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.upload-text p {
+    color: var(--gray-500);
+    margin: 0;
+}
+
+.browse-link {
+    color: var(--primary-blue);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.upload-requirements {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.req-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    justify-content: center;
+}
+
+.req-item i {
+    color: var(--success-color);
+}
+
+.file-preview {
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.preview-header h4 {
+    color: var(--gray-700);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.remove-file {
+    background: var(--error-color);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-full);
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.remove-file:hover {
+    background: #dc2626;
+}
+
+.preview-content {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.preview-content img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--gray-200);
+}
+
+.file-info {
+    flex: 1;
+    text-align: left;
+}
+
+.file-name {
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.25rem;
+}
+
+.file-size {
+    color: var(--gray-500);
+    font-size: 0.9rem;
+}
+
+.loading-spinner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.guidelines-section {
+    margin-bottom: 3rem;
+}
+
+.guidelines-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.guideline-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-normal);
+}
+
+.guideline-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.guideline-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--gradient-secondary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    color: var(--white);
+    font-size: 1.5rem;
+}
+
+.guideline-card h3 {
+    margin-bottom: 1rem;
+    color: var(--gray-800);
+}
+
+.guideline-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.guideline-card li {
+    padding: 0.4rem 0;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.guideline-card li:before {
+    content: "•";
+    color: var(--primary-blue);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+.disclaimer {
+    margin-bottom: 2rem;
+}
+
+.disclaimer-content {
+    background: linear-gradient(135deg, #fef3c7 0%, #fee2e2 100%);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border-left: 4px solid var(--warning-color);
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.disclaimer-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--warning-color);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    flex-shrink: 0;
+}
+
+.disclaimer-text h4 {
+    color: var(--gray-800);
+    margin-bottom: 0.5rem;
+}
+
+.disclaimer-text p {
+    color: var(--gray-700);
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .model-header {
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+    }
+    
+    .model-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .model-specs {
+        justify-content: center;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .classes-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .guidelines-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .preview-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .file-info {
+        text-align: center;
+    }
+    
+    .disclaimer-content {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const filePreview = document.getElementById('filePreview');
+    const previewImage = document.getElementById('previewImage');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const removeFile = document.getElementById('removeFile');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const uploadForm = document.getElementById('uploadForm');
+    const browseLink = document.querySelector('.browse-link');
+
+    // Click to browse files
+    uploadArea.addEventListener('click', () => fileInput.click());
+    browseLink.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.click();
+    });
+
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+        }
+    });
+
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    // Remove file
+    removeFile.addEventListener('click', () => {
+        fileInput.value = '';
+        filePreview.style.display = 'none';
+        uploadArea.style.display = 'block';
+        analyzeBtn.disabled = true;
+    });
+
+    // Form submission
+    uploadForm.addEventListener('submit', (e) => {
+        const loadingSpinner = analyzeBtn.querySelector('.loading-spinner');
+        const btnText = analyzeBtn.querySelector('i.fas.fa-brain').parentNode;
+        
+        analyzeBtn.disabled = true;
+        loadingSpinner.style.display = 'inline-flex';
+        btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    });
+
+    function handleFileSelect(file) {
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/tiff'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a valid image file (JPEG, PNG, TIFF, etc.)');
+            return;
+        }
+
+        // Validate file size (16MB max)
+        if (file.size > 16 * 1024 * 1024) {
+            alert('File size must be less than 16MB');
+            return;
+        }
+
+        // Show file preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImage.src = e.target.result;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            
+            uploadArea.style.display = 'none';
+            filePreview.style.display = 'block';
+            analyzeBtn.disabled = false;
+        };
+        reader.readAsDataURL(file);
+
+        // Set the file input value
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+});
+</script>
+{% endblock %}

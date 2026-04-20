@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Multi Cancer Detection{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h2>Join Our Platform</h2>
+                <p>Create your account to access advanced AI cancer detection</p>
+            </div>
+            
+            <form method="POST" class="auth-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="full_name" class="form-label">
+                            <i class="fas fa-id-card"></i> Full Name
+                        </label>
+                        <input type="text" 
+                               id="full_name" 
+                               name="full_name" 
+                               class="form-control" 
+                               placeholder="Dr. John Smith"
+                               required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="username" class="form-label">
+                            <i class="fas fa-user"></i> Username
+                        </label>
+                        <input type="text" 
+                               id="username" 
+                               name="username" 
+                               class="form-control" 
+                               placeholder="johnsmith"
+                               required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        <i class="fas fa-envelope"></i> Email Address
+                    </label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           class="form-control" 
+                           placeholder="john.smith@hospital.com"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <i class="fas fa-lock"></i> Password
+                    </label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="form-control" 
+                           placeholder="Create a strong password"
+                           required>
+                    <div class="password-strength">
+                        <div class="strength-meter">
+                            <div class="strength-fill"></div>
+                        </div>
+                        <span class="strength-text">Password strength</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="role" class="form-label">
+                        <i class="fas fa-user-tag"></i> Professional Role
+                    </label>
+                    <select id="role" name="role" class="form-control" required>
+                        <option value="">Select your role</option>
+                        <option value="doctor">Medical Doctor</option>
+                        <option value="radiologist">Radiologist</option>
+                        <option value="oncologist">Oncologist</option>
+                        <option value="pathologist">Pathologist</option>
+                        <option value="researcher">Medical Researcher</option>
+                        <option value="technician">Medical Technician</option>
+                        <option value="student">Medical Student</option>
+                        <option value="user">General User</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="terms_accepted" required>
+                        <span class="checkmark"></span>
+                        I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="newsletter">
+                        <span class="checkmark"></span>
+                        Send me updates about new AI models and platform features
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-rocket"></i> Create Account
+                </button>
+            </form>
+            
+            <div class="auth-footer">
+                <p>Already have an account? <a href="{{ url_for('login') }}">Sign in here</a></p>
+            </div>
+        </div>
+        
+        <div class="auth-sidebar">
+            <div class="sidebar-content">
+                <h3>Why Choose Our Platform?</h3>
+                
+                <div class="benefit-list">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-microscope"></i>
+                        </div>
+                        <div class="benefit-content">
+                            <h4>Advanced AI Models</h4>
+                            <p>7 specialized deep learning models for different cancer types</p>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="benefit-content">
+                            <h4>Rapid Analysis</h4>
+                            <p>Get results in under 30 seconds with high accuracy</p>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="benefit-content">
+                            <h4>Secure & Compliant</h4>
+                            <p>HIPAA-compliant platform with enterprise-grade security</p>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <div class="benefit-content">
+                            <h4>Professional Tools</h4>
+                            <p>Designed specifically for healthcare professionals</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-mini">
+                    <div class="stat-mini">
+                        <span class="stat-number">10,000+</span>
+                        <span class="stat-label">Images Analyzed</span>
+                    </div>
+                    <div class="stat-mini">
+                        <span class="stat-number">1,000+</span>
+                        <span class="stat-label">Medical Professionals</span>
+                    </div>
+                    <div class="stat-mini">
+                        <span class="stat-number">95%</span>
+                        <span class="stat-label">Accuracy Rate</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.auth-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 90vh;
+    max-width: 1200px;
+    margin: 2rem auto;
+    box-shadow: var(--shadow-2xl);
+    border-radius: var(--radius-2xl);
+    overflow: hidden;
+}
+
+.auth-card {
+    background: var(--white);
+    padding: 2rem 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: var(--white);
+    font-size: 2rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    transition: all var(--transition-fast);
+}
+
+.form-control:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.password-strength {
+    margin-top: 0.5rem;
+}
+
+.strength-meter {
+    width: 100%;
+    height: 4px;
+    background: var(--gray-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--gray-400);
+    transition: all var(--transition-normal);
+    border-radius: var(--radius-full);
+}
+
+.strength-text {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    margin-left: 0.5rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin: 0;
+    margin-top: 0.2rem;
+}
+
+.checkbox-label a {
+    color: var(--primary-blue);
+    text-decoration: none;
+}
+
+.checkbox-label a:hover {
+    text-decoration: underline;
+}
+
+.auth-sidebar {
+    background: var(--gradient-primary);
+    color: var(--white);
+    padding: 3rem;
+    display: flex;
+    align-items: center;
+}
+
+.sidebar-content h3 {
+    color: var(--white);
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+}
+
+.benefit-list {
+    margin-bottom: 2rem;
+}
+
+.benefit-item {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: flex-start;
+}
+
+.benefit-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.benefit-content h4 {
+    color: var(--white);
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+}
+
+.benefit-content p {
+    opacity: 0.9;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.stats-mini {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.stat-mini {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--white);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+    .auth-container {
+        grid-template-columns: 1fr;
+        margin: 1rem;
+    }
+    
+    .auth-card {
+        padding: 2rem;
+        max-height: none;
+    }
+    
+    .auth-sidebar {
+        order: -1;
+        padding: 2rem;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+    
+    .stats-mini {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Password strength indicators */
+.form-control[data-strength="weak"] + .password-strength .strength-fill {
+    width: 25%;
+    background: var(--error-color);
+}
+
+.form-control[data-strength="fair"] + .password-strength .strength-fill {
+    width: 50%;
+    background: var(--warning-color);
+}
+
+.form-control[data-strength="good"] + .password-strength .strength-fill {
+    width: 75%;
+    background: var(--info-color);
+}
+
+.form-control[data-strength="strong"] + .password-strength .strength-fill {
+    width: 100%;
+    background: var(--success-color);
+}
+</style>
+
+<script>
+// Password strength checker
+document.getElementById('password').addEventListener('input', function(e) {
+    const password = e.target.value;
+    const strengthFill = document.querySelector('.strength-fill');
+    const strengthText = document.querySelector('.strength-text');
+    
+    let strength = 0;
+    let strengthLabel = '';
+    
+    if (password.length >= 8) strength += 1;
+    if (/[a-z]/.test(password)) strength += 1;
+    if (/[A-Z]/.test(password)) strength += 1;
+    if (/[0-9]/.test(password)) strength += 1;
+    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+    
+    switch(strength) {
+        case 0:
+        case 1:
+            strengthLabel = 'Very Weak';
+            e.target.setAttribute('data-strength', 'weak');
+            break;
+        case 2:
+            strengthLabel = 'Weak';
+            e.target.setAttribute('data-strength', 'weak');
+            break;
+        case 3:
+            strengthLabel = 'Fair';
+            e.target.setAttribute('data-strength', 'fair');
+            break;
+        case 4:
+            strengthLabel = 'Good';
+            e.target.setAttribute('data-strength', 'good');
+            break;
+        case 5:
+            strengthLabel = 'Strong';
+            e.target.setAttribute('data-strength', 'strong');
+            break;
+    }
+    
+    strengthText.textContent = strengthLabel;
+});
+</script>
+{% endblock %}

@@ -1,0 +1,490 @@
+{% extends "base.html" %}
+
+{% block title %}Training Status - {{ model_type.title() }} Model{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Training Header -->
+    <div class="training-header">
+        <div class="back-navigation">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Back to Admin Dashboard
+            </a>
+        </div>
+        
+        <div class="header-content">
+            <div class="model-icon">
+                {% if model_type == 'brain' %}
+                    <i class="fas fa-brain"></i>
+                {% elif model_type == 'lung' %}
+                    <i class="fas fa-lungs"></i>
+                {% elif model_type == 'breast' %}
+                    <i class="fas fa-ribbon"></i>
+                {% elif model_type == 'skin' %}
+                    <i class="fas fa-hand-paper"></i>
+                {% elif model_type == 'colon' %}
+                    <i class="fas fa-search"></i>
+                {% elif model_type == 'liver' %}
+                    <i class="fas fa-liver"></i>
+                {% endif %}
+            </div>
+            <div class="header-text">
+                <h1>{{ model_type.title() }} Model Training Status</h1>
+                <p>Real-time monitoring of enhanced model training progress</p>
+            </div>
+        </div>
+    </div>
+
+    {% if training_status %}
+    <!-- Training Progress -->
+    <div class="progress-section">
+        <div class="progress-card">
+            <div class="progress-header">
+                <h2><i class="fas fa-chart-line"></i> Training Progress</h2>
+                <div class="status-badge status-{{ training_status.status }}">
+                    {% if training_status.status == 'training' %}
+                        <i class="fas fa-spinner fa-spin"></i>
+                    {% elif training_status.status == 'completed' %}
+                        <i class="fas fa-check-circle"></i>
+                    {% elif training_status.status == 'failed' %}
+                        <i class="fas fa-times-circle"></i>
+                    {% else %}
+                        <i class="fas fa-clock"></i>
+                    {% endif %}
+                    {{ training_status.status.replace('_', ' ').title() }}
+                </div>
+            </div>
+            
+            <div class="progress-main">
+                <div class="progress-bar-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: {{ training_status.progress }}%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span id="progressText">{{ training_status.progress }}%</span>
+                        <span class="progress-time">
+                            Started: {{ training_status.start_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="training-info">
+                    <div class="info-item">
+                        <span class="label">Training ID:</span>
+                        <span class="value">{{ training_status.training_id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Configuration:</span>
+                        <span class="value">
+                            Epochs: {{ training_status.config.epochs }}, 
+                            Batch Size: {{ training_status.config.batch_size }}, 
+                            LR: {{ training_status.config.learning_rate }}
+                        </span>
+                    </div>
+                    {% if training_status.status in ['training', 'preparing_data'] %}
+                    <div class="training-controls">
+                        <form method="post" action="{{ url_for('admin.stop_training', model_type=model_type) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to stop training? Progress will be lost.')">
+                                <i class="fas fa-stop"></i> Stop Training
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Logs -->
+    <div class="logs-section">
+        <div class="logs-card">
+            <div class="logs-header">
+                <h2><i class="fas fa-terminal"></i> Training Logs</h2>
+                <button id="autoRefresh" class="btn btn-outline btn-small" onclick="toggleAutoRefresh()">
+                    <i class="fas fa-sync-alt"></i> Auto Refresh: ON
+                </button>
+            </div>
+            
+            <div class="logs-container" id="logsContainer">
+                {% for log in logs %}
+                <div class="log-entry">{{ log }}</div>
+                {% endfor %}
+            </div>
+            
+            {% if not logs %}
+            <div class="no-logs">
+                <i class="fas fa-info-circle"></i>
+                <p>No logs available yet. Training will start shortly...</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Training Active -->
+    <div class="no-training-section">
+        <div class="no-training-card">
+            <div class="no-training-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <h2>No Active Training</h2>
+            <p>There is currently no training session active for the {{ model_type }} model.</p>
+            <div class="no-training-actions">
+                <a href="{{ url_for('admin.train_model', model_type=model_type) }}" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Start Training
+                </a>
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+let autoRefreshEnabled = true;
+let refreshInterval;
+
+function toggleAutoRefresh() {
+    autoRefreshEnabled = !autoRefreshEnabled;
+    const button = document.getElementById('autoRefresh');
+    const icon = button.querySelector('i');
+    
+    if (autoRefreshEnabled) {
+        button.innerHTML = '<i class="fas fa-sync-alt"></i> Auto Refresh: ON';
+        button.classList.remove('btn-danger');
+        button.classList.add('btn-outline');
+        startAutoRefresh();
+    } else {
+        button.innerHTML = '<i class="fas fa-pause"></i> Auto Refresh: OFF';
+        button.classList.remove('btn-outline');
+        button.classList.add('btn-danger');
+        stopAutoRefresh();
+    }
+}
+
+function startAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    
+    refreshInterval = setInterval(async () => {
+        if (!autoRefreshEnabled) return;
+        
+        try {
+            const response = await fetch('{{ url_for("admin.api_training_status", model_type=model_type) }}');
+            const data = await response.json();
+            
+            if (data.status) {
+                // Update progress
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                
+                if (progressFill && progressText) {
+                    progressFill.style.width = data.status.progress + '%';
+                    progressText.textContent = data.status.progress + '%';
+                }
+                
+                // Update logs
+                const logsContainer = document.getElementById('logsContainer');
+                if (logsContainer && data.logs) {
+                    const newLogs = data.logs.map(log => 
+                        `<div class="log-entry">${log}</div>`
+                    ).join('');
+                    logsContainer.innerHTML = newLogs;
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                }
+                
+                // If training is completed or failed, reload the page
+                if (data.status.status === 'completed' || data.status.status === 'failed') {
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch training status:', error);
+        }
+    }, 3000); // Refresh every 3 seconds
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
+}
+
+// Start auto refresh when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    {% if training_status and training_status.status in ['training', 'preparing_data', 'initializing'] %}
+    startAutoRefresh();
+    {% endif %}
+});
+
+// Stop auto refresh when page is unloaded
+window.addEventListener('beforeunload', function() {
+    stopAutoRefresh();
+});
+</script>
+
+<style>
+.training-header {
+    margin-bottom: 30px;
+}
+
+.back-navigation {
+    margin-bottom: 20px;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 24px;
+    background: linear-gradient(135deg, #1e40af 0%, #0891b2 100%);
+    border-radius: 16px;
+    color: white;
+}
+
+.model-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.header-text h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+}
+
+.header-text p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.progress-section, .logs-section, .no-training-section {
+    margin-bottom: 30px;
+}
+
+.progress-card, .logs-card, .no-training-card {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.progress-header, .logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.progress-header h2, .logs-header h2 {
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-badge.status-training {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.status-badge.status-completed {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.status-failed {
+    background: #fecaca;
+    color: #dc2626;
+}
+
+.status-badge.status-initializing,
+.status-badge.status-preparing_data {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.progress-bar-container {
+    margin-bottom: 20px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 12px;
+    background: #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    transition: width 0.5s ease;
+    border-radius: 6px;
+}
+
+.progress-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.progress-text #progressText {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.progress-time {
+    color: #6b7280;
+}
+
+.training-info {
+    display: grid;
+    gap: 12px;
+}
+
+.info-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.info-item .label {
+    font-weight: 600;
+    color: #6b7280;
+    min-width: 120px;
+}
+
+.info-item .value {
+    color: #1f2937;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.training-controls {
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-small {
+    padding: 8px 16px;
+    font-size: 12px;
+}
+
+.logs-container {
+    background: #1f2937;
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.log-entry {
+    color: #e5e7eb;
+    margin-bottom: 4px;
+    white-space: pre-wrap;
+}
+
+.log-entry:last-child {
+    margin-bottom: 0;
+}
+
+.no-logs {
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+}
+
+.no-logs i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.no-training-card {
+    text-align: center;
+    padding: 60px 40px;
+}
+
+.no-training-icon {
+    font-size: 64px;
+    color: #6b7280;
+    margin-bottom: 24px;
+}
+
+.no-training-card h2 {
+    color: #1f2937;
+    margin-bottom: 16px;
+}
+
+.no-training-card p {
+    color: #6b7280;
+    margin-bottom: 32px;
+    font-size: 16px;
+}
+
+.no-training-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .progress-header, .logs-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+    
+    .progress-text {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .no-training-actions {
+        flex-direction: column;
+    }
+    
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .info-item .label {
+        min-width: auto;
+    }
+}
+</style>
+{% endblock %}

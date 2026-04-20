@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+
+{% block title %}Train {{ model_type.title() }} Model{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Training Header -->
+    <div class="training-header">
+        <div class="back-navigation">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Back to Admin Dashboard
+            </a>
+        </div>
+        
+        <div class="header-content">
+            <div class="model-icon">
+                {% if model_type == 'brain' %}
+                    <i class="fas fa-brain"></i>
+                {% elif model_type == 'lung' %}
+                    <i class="fas fa-lungs"></i>
+                {% elif model_type == 'breast' %}
+                    <i class="fas fa-ribbon"></i>
+                {% elif model_type == 'skin' %}
+                    <i class="fas fa-hand-paper"></i>
+                {% elif model_type == 'colon' %}
+                    <i class="fas fa-search"></i>
+                {% elif model_type == 'liver' %}
+                    <i class="fas fa-liver"></i>
+                {% endif %}
+            </div>
+            <div class="header-text">
+                <h1>{% if model_status.exists %}Retrain{% else %}Train{% endif %} {{ model_type.title() }} Cancer Detection Model</h1>
+                <p>Configure and start training the enhanced ViT + InceptionV3 + CNN ensemble model</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="training-content">
+        <!-- Current Model Status -->
+        <div class="status-section">
+            <h2><i class="fas fa-info-circle"></i> Current Model Status</h2>
+            <div class="status-card">
+                {% if model_status.exists %}
+                <div class="status-item status-success">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>{{ model_status.model_type_name }} Model Found</strong>
+                        <p>Size: {{ "%.1f"|format(model_status.size / (1024*1024)) }} MB | Created: {{ model_status.created.strftime('%Y-%m-%d %H:%M') if model_status.created else 'Unknown' }}</p>
+                        {% if model_status.model_type_name == 'Legacy' %}
+                        <p class="upgrade-note"><i class="fas fa-arrow-up"></i> Training will upgrade this to an Enhanced model</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if model_status.info %}
+                <div class="status-item">
+                    <i class="fas fa-chart-line"></i>
+                    <div>
+                        <strong>Accuracy: {{ "%.1f"|format(model_status.info.accuracy * 100) if model_status.info.accuracy else 'N/A' }}%</strong>
+                        <p>Architecture: {{ model_status.info.architecture or 'Enhanced Ensemble' }}</p>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="status-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Note:</strong> Training will backup the existing model before creating a new one.
+                </div>
+                {% else %}
+                <div class="status-item status-warning">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div>
+                        <strong>No Model Found</strong>
+                        <p>A new enhanced model will be created from scratch</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Training Configuration -->
+        <div class="config-section">
+            <h2><i class="fas fa-cogs"></i> Training Configuration</h2>
+            <form method="post" class="training-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="epochs">Training Epochs</label>
+                        <input type="number" id="epochs" name="epochs" value="50" min="10" max="200" required>
+                        <small>Number of training iterations (recommended: 50-100)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="batch_size">Batch Size</label>
+                        <select id="batch_size" name="batch_size" required>
+                            <option value="8">8 (Memory Efficient)</option>
+                            <option value="16" selected>16 (Recommended)</option>
+                            <option value="32">32 (Faster Training)</option>
+                            <option value="64">64 (High Memory)</option>
+                        </select>
+                        <small>Number of samples processed together</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="learning_rate">Learning Rate</label>
+                        <select id="learning_rate" name="learning_rate" required>
+                            <option value="1e-5">0.00001 (Conservative)</option>
+                            <option value="1e-4" selected>0.0001 (Recommended)</option>
+                            <option value="1e-3">0.001 (Aggressive)</option>
+                            <option value="5e-4">0.0005 (Balanced)</option>
+                        </select>
+                        <small>How fast the model learns</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="samples_per_class">Samples per Class</label>
+                        <input type="number" id="samples_per_class" name="samples_per_class" value="200" min="50" max="1000" required>
+                        <small>Number of synthetic samples to generate per cancer type</small>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="backup_existing" name="backup_existing" checked>
+                        <label for="backup_existing">
+                            <i class="fas fa-shield-alt"></i>
+                            Backup Existing Model
+                        </label>
+                        <small>Automatically backup current model before training</small>
+                    </div>
+
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="use_augmentation" name="use_augmentation" checked>
+                        <label for="use_augmentation">
+                            <i class="fas fa-magic"></i>
+                            Use Data Augmentation
+                        </label>
+                        <small>Apply image transformations to improve model robustness</small>
+                    </div>
+                </div>
+
+                <div class="training-actions">
+                    <button type="submit" class="btn btn-primary btn-large">
+                        <i class="fas fa-play"></i>
+                        {% if model_status.exists %}Start Retraining{% else %}Start Training{% endif %}
+                    </button>
+                    <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Training Information -->
+        <div class="info-section">
+            <h2><i class="fas fa-lightbulb"></i> What Happens During Training</h2>
+            <div class="process-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Data Preparation</h3>
+                        <p>Generate synthetic medical images for {{ model_type }} cancer detection with realistic patterns and variations.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Model Architecture</h3>
+                        <p>Create enhanced ensemble combining Vision Transformer, InceptionV3, and custom CNN with knowledge retention.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Training Process</h3>
+                        <p>Train with data augmentation, early stopping, and learning rate scheduling for optimal performance.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Model Evaluation</h3>
+                        <p>Validate model performance with accuracy, precision, and recall metrics on test data.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>Deployment</h3>
+                        <p>Save the trained model and update system configuration for immediate use in predictions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.training-header {
+    margin-bottom: 30px;
+}
+
+.back-navigation {
+    margin-bottom: 20px;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 24px;
+    background: linear-gradient(135deg, #1e40af 0%, #0891b2 100%);
+    border-radius: 16px;
+    color: white;
+}
+
+.model-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.header-text h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+}
+
+.header-text p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.training-content {
+    display: grid;
+    gap: 30px;
+}
+
+.status-section, .config-section, .info-section {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.status-section h2, .config-section h2, .info-section h2 {
+    color: #1f2937;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-card {
+    display: grid;
+    gap: 16px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border-left: 4px solid #3b82f6;
+}
+
+.status-item.status-success {
+    background: #f0fdf4;
+    border-left-color: #22c55e;
+}
+
+.status-item.status-warning {
+    background: #fffbeb;
+    border-left-color: #f59e0b;
+}
+
+.status-item i {
+    font-size: 24px;
+    color: #3b82f6;
+}
+
+.status-success i {
+    color: #22c55e;
+}
+
+.status-warning i {
+    color: #f59e0b;
+}
+
+.status-warning {
+    padding: 12px 16px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    color: #92400e;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.training-form {
+    display: grid;
+    gap: 24px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    display: grid;
+    gap: 8px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #374151;
+}
+
+.form-group input, .form-group select {
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.form-group small {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.checkbox-group {
+    display: grid;
+    gap: 16px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.checkbox-item:has(input:checked) {
+    background: #eff6ff;
+    border-color: #3b82f6;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+.checkbox-item label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    margin: 0;
+}
+
+.checkbox-item label i {
+    color: #3b82f6;
+}
+
+.checkbox-item small {
+    color: #6b7280;
+    font-size: 12px;
+    margin-left: auto;
+}
+
+.training-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-large {
+    padding: 16px 32px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.process-steps {
+    display: grid;
+    gap: 20px;
+}
+
+.step {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.step-content h3 {
+    margin: 0 0 8px 0;
+    color: #1f2937;
+    font-size: 16px;
+}
+
+.step-content p {
+    margin: 0;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .training-actions {
+        flex-direction: column;
+    }
+    
+    .step {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}

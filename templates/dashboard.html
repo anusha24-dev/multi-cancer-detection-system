@@ -1,0 +1,978 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Multi Cancer Detection{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="welcome-section">
+            <h1>Welcome back, {{ current_user.full_name }}!</h1>
+            <p>{% if is_admin %}System Administrator Dashboard - Manage your AI-powered medical platform{% else %}Your comprehensive AI-powered cancer detection dashboard{% endif %}</p>
+            {% if is_admin %}
+            <div class="admin-badge">
+                <i class="fas fa-crown"></i> Administrator Access
+            </div>
+            {% endif %}
+        </div>
+        <div class="quick-actions">
+            <a href="{{ url_for('predict_page') }}" class="btn btn-primary">
+                <i class="fas fa-microscope"></i> New Analysis
+            </a>
+            <a href="{{ url_for('history') }}" class="btn btn-outline">
+                <i class="fas fa-history"></i> View History
+            </a>
+            {% if is_admin %}
+            <a href="#system-overview" class="btn btn-admin">
+                <i class="fas fa-cogs"></i> System Overview
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Admin Statistics (only for admin users) -->
+    {% if is_admin %}
+    <div class="admin-section" id="system-overview">
+        <div class="section-header">
+            <h2><i class="fas fa-chart-bar"></i> System Overview</h2>
+            <p>Platform-wide statistics and monitoring</p>
+        </div>
+        
+        <div class="admin-stats-grid">
+            <div class="admin-stat-card total-users">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-number">{{ admin_stats.total_users }}</span>
+                    <span class="stat-label">Total Users</span>
+                    <span class="stat-sublabel">{{ admin_stats.active_users }} active</span>
+                </div>
+            </div>
+            
+            <div class="admin-stat-card total-analyses">
+                <div class="stat-icon">
+                    <i class="fas fa-analytics"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-number">{{ admin_stats.total_predictions_all }}</span>
+                    <span class="stat-label">Total Analyses</span>
+                    <span class="stat-sublabel">Platform-wide</span>
+                </div>
+            </div>
+            
+            <div class="admin-stat-card daily-activity">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-number">{{ admin_stats.daily_predictions }}</span>
+                    <span class="stat-label">Today's Analyses</span>
+                    <span class="stat-sublabel">{{ admin_stats.weekly_predictions }} this week</span>
+                </div>
+            </div>
+            
+            <div class="admin-stat-card system-health">
+                <div class="stat-icon">
+                    <i class="fas fa-heartbeat"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-number">{{ loaded_models|length }}/{{ cancer_models|length }}</span>
+                    <span class="stat-label">Models Active</span>
+                    <span class="stat-sublabel">System Health: Good</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Model Usage Statistics -->
+        <div class="admin-models-overview">
+            <h3><i class="fas fa-brain"></i> Model Usage Statistics</h3>
+            <div class="model-usage-grid">
+                {% for model_key, model_info in cancer_models.items() %}
+                <div class="model-usage-card">
+                    <div class="model-usage-header">
+                        <span class="model-name">{{ model_info.name }}</span>
+                        <span class="usage-count">{{ admin_stats.model_usage_stats.get(model_key, 0) }} uses</span>
+                    </div>
+                    <div class="model-usage-bar">
+                        {% set max_usage = admin_stats.model_usage_stats.values()|max if admin_stats.model_usage_stats.values() else 1 %}
+                        {% set usage_percentage = (admin_stats.model_usage_stats.get(model_key, 0) / max_usage * 100) if max_usage > 0 else 0 %}
+                        <div class="usage-fill" style="width: {{ usage_percentage }}%"></div>
+                    </div>
+                    <div class="model-status-indicator {% if model_key in loaded_models %}active{% else %}inactive{% endif %}">
+                        {% if model_key in loaded_models %}
+                            <i class="fas fa-check-circle"></i> Active
+                        {% else %}
+                            <i class="fas fa-times-circle"></i> Inactive
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Recent User Registrations -->
+        <div class="recent-registrations">
+            <h3><i class="fas fa-user-plus"></i> Recent Registrations</h3>
+            <div class="registrations-list">
+                {% for user in admin_stats.recent_registrations %}
+                <div class="registration-item">
+                    <div class="user-info">
+                        <span class="user-name">{{ user.full_name }}</span>
+                        <span class="user-role">{{ user.role.title() }}</span>
+                    </div>
+                    <div class="registration-date">
+                        {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Personal Statistics Cards -->
+    <div class="dashboard-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-number">{{ total_predictions }}</span>
+                <span class="stat-label">{% if is_admin %}Your{% else %}Total{% endif %} Analyses</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-number">{{ loaded_models|length }}</span>
+                <span class="stat-label">Available Models</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-number">~30s</span>
+                <span class="stat-label">Avg. Analysis Time</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-shield-check"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-number">95%</span>
+                <span class="stat-label">Accuracy Rate</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content -->
+    <div class="dashboard-main">
+        <!-- Available Models Section -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2><i class="fas fa-brain"></i> AI Models Available</h2>
+                <p>Choose from our specialized deep learning models for different cancer types</p>
+            </div>
+            
+            <div class="models-grid">
+                {% for model_key, model_info in cancer_models.items() %}
+                <div class="model-card {% if model_key not in loaded_models %}unavailable{% endif %}">
+                    <div class="model-header">
+                        <div class="model-icon">
+                            {% if model_key == 'brain' %}
+                                <i class="fas fa-brain"></i>
+                            {% elif model_key == 'lung' %}
+                                <i class="fas fa-lungs"></i>
+                            {% elif model_key == 'breast' %}
+                                <i class="fas fa-ribbon"></i>
+                            {% elif model_key == 'skin' %}
+                                <i class="fas fa-hand-paper"></i>
+                            {% elif model_key == 'colon' %}
+                                <i class="fas fa-search"></i>
+                            {% elif model_key == 'liver' %}
+                                <i class="fas fa-liver"></i>
+                            {% else %}
+                                <i class="fas fa-microscope"></i>
+                            {% endif %}
+                        </div>
+                        <h3>{{ model_info.name }}</h3>
+                        <div class="model-status {% if model_key in loaded_models %}active{% else %}pending{% endif %}">
+                            {% if model_key in loaded_models %}
+                                <i class="fas fa-check-circle"></i> Active
+                            {% else %}
+                                <i class="fas fa-clock"></i> Pending
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="model-body">
+                        <p>{{ model_info.description }}</p>
+                        
+                        <div class="model-stats">
+                            <div class="stat-item">
+                                <span class="stat-value">{{ model_stats.get(model_key, 0) }}</span>
+                                <span class="stat-name">Your Analyses</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">{{ model_info.classes|length }}</span>
+                                <span class="stat-name">Classes</span>
+                            </div>
+                        </div>
+                        
+                        <div class="model-classes">
+                            <h4>Detection Categories:</h4>
+                            <ul>
+                                {% for class_id, class_name in model_info.classes.items() %}
+                                <li>{{ class_name }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="model-footer">
+                        {% if model_key in loaded_models %}
+                            <a href="{{ url_for('predict_model', model_type=model_key) }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-play"></i> Use This Model
+                            </a>
+                        {% else %}
+                            <button class="btn btn-secondary btn-block" disabled>
+                                <i class="fas fa-hourglass-half"></i> Model Loading...
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Activity Section -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2><i class="fas fa-history"></i> Recent Activity</h2>
+                <a href="{{ url_for('history') }}" class="view-all-link">View All</a>
+            </div>
+            
+            <div class="recent-activity">
+                {% if recent_predictions %}
+                    {% for prediction in recent_predictions %}
+                    <div class="activity-item">
+                        <div class="activity-icon {% if 'cancer' in prediction.prediction_result.lower() or 'malignant' in prediction.prediction_result.lower() %}warning{% else %}success{% endif %}">
+                            {% if prediction.model_type == 'brain' %}
+                                <i class="fas fa-brain"></i>
+                            {% elif prediction.model_type == 'lung' %}
+                                <i class="fas fa-lungs"></i>
+                            {% elif prediction.model_type == 'breast' %}
+                                <i class="fas fa-ribbon"></i>
+                            {% elif prediction.model_type == 'skin' %}
+                                <i class="fas fa-hand-paper"></i>
+                            {% elif prediction.model_type == 'colon' %}
+                                <i class="fas fa-search"></i>
+                            {% elif prediction.model_type == 'liver' %}
+                                <i class="fas fa-liver"></i>
+                            {% else %}
+                                <i class="fas fa-microscope"></i>
+                            {% endif %}
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">{{ cancer_models[prediction.model_type].name }}</div>
+                            <div class="activity-description">
+                                Result: <strong>{{ prediction.prediction_result }}</strong>
+                                {% if prediction.confidence_score %}
+                                    ({{ "%.1f"|format(prediction.confidence_score * 100) }}% confidence)
+                                {% endif %}
+                            </div>
+                            <div class="activity-time">{{ prediction.created_at.strftime('%B %d, %Y at %I:%M %p') }}</div>
+                        </div>
+                        <div class="activity-actions">
+                            <button class="btn btn-sm btn-outline" onclick="viewPredictionDetails({{ prediction.id }})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>No analyses yet</h3>
+                        <p>Start by uploading your first medical image for AI analysis</p>
+                        <a href="{{ url_for('predict_page') }}" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Upload First Image
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Stats Section -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2><i class="fas fa-chart-pie"></i> Analysis Breakdown</h2>
+            </div>
+            
+            <div class="stats-breakdown">
+                {% for model_key, model_info in cancer_models.items() %}
+                {% set count = model_stats.get(model_key, 0) %}
+                <div class="breakdown-item">
+                    <div class="breakdown-header">
+                        <span class="breakdown-label">{{ model_info.name }}</span>
+                        <span class="breakdown-count">{{ count }}</span>
+                    </div>
+                    <div class="breakdown-bar">
+                        <div class="breakdown-fill" style="width: {% if total_predictions > 0 %}{{ (count / total_predictions * 100) }}{% else %}0{% endif %}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 2rem 0;
+    border-bottom: 2px solid var(--gray-100);
+}
+
+.welcome-section h1 {
+    color: var(--gray-800);
+    margin-bottom: 0.5rem;
+}
+
+.welcome-section p {
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all var(--transition-normal);
+    border-left: 4px solid var(--primary-blue);
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-size: 1.5rem;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-number {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    line-height: 1;
+}
+
+.stat-label {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dashboard-main {
+    display: grid;
+    gap: 3rem;
+}
+
+.dashboard-section {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--gray-100);
+}
+
+.section-header h2 {
+    color: var(--gray-800);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.view-all-link {
+    color: var(--primary-blue);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.models-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.model-card {
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    transition: all var(--transition-normal);
+    border: 2px solid var(--gray-200);
+}
+
+.model-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.model-card.unavailable {
+    opacity: 0.6;
+    background: var(--gray-100);
+}
+
+.model-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.model-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: var(--white);
+    font-size: 1.5rem;
+}
+
+.model-header h3 {
+    margin-bottom: 0.5rem;
+    color: var(--gray-800);
+}
+
+.model-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.model-status.active {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success-color);
+}
+
+.model-status.pending {
+    background: rgba(156, 163, 175, 0.1);
+    color: var(--gray-500);
+}
+
+.model-body p {
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.model-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 0.75rem;
+    background: var(--white);
+    border-radius: var(--radius-md);
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+.stat-name {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.model-classes h4 {
+    font-size: 0.9rem;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.model-classes ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.model-classes li {
+    padding: 0.25rem 0;
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    position: relative;
+    padding-left: 1rem;
+}
+
+.model-classes li:before {
+    content: "•";
+    color: var(--primary-blue);
+    position: absolute;
+    left: 0;
+}
+
+.model-footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.activity-icon.success {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success-color);
+}
+
+.activity-icon.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-title {
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
+}
+
+.activity-description {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.activity-time {
+    color: var(--gray-500);
+    font-size: 0.8rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--gray-100);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: var(--gray-400);
+    font-size: 2rem;
+}
+
+.empty-state h3 {
+    color: var(--gray-600);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--gray-500);
+    margin-bottom: 2rem;
+}
+
+.stats-breakdown {
+    display: grid;
+    gap: 1rem;
+}
+
+.breakdown-item {
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+}
+
+.breakdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.breakdown-label {
+    font-weight: 600;
+    color: var(--gray-700);
+    font-size: 0.9rem;
+}
+
+.breakdown-count {
+    font-weight: 700;
+    color: var(--primary-blue);
+}
+
+.breakdown-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.breakdown-fill {
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    transition: width var(--transition-normal);
+}
+
+/* Admin-specific styles */
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.btn-admin {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    border: none;
+    transition: all var(--transition-normal);
+}
+
+.btn-admin:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+}
+
+.admin-section {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(124, 58, 237, 0.05));
+    border: 2px solid rgba(139, 92, 246, 0.1);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.admin-stat-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border-left: 4px solid;
+    transition: all var(--transition-normal);
+}
+
+.admin-stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-xl);
+}
+
+.admin-stat-card.total-users {
+    border-left-color: #3b82f6;
+}
+
+.admin-stat-card.total-analyses {
+    border-left-color: #10b981;
+}
+
+.admin-stat-card.daily-activity {
+    border-left-color: #f59e0b;
+}
+
+.admin-stat-card.system-health {
+    border-left-color: #ef4444;
+}
+
+.admin-stat-card .stat-sublabel {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    margin-top: 0.25rem;
+}
+
+.admin-models-overview {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-models-overview h3 {
+    color: var(--gray-800);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.model-usage-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.model-usage-card {
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    border: 1px solid var(--gray-200);
+}
+
+.model-usage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.model-name {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.usage-count {
+    font-size: 0.9rem;
+    color: var(--primary-blue);
+    font-weight: 600;
+}
+
+.model-usage-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.usage-fill {
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    transition: width var(--transition-normal);
+}
+
+.model-status-indicator {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.model-status-indicator.active {
+    color: var(--success-color);
+}
+
+.model-status-indicator.inactive {
+    color: var(--gray-500);
+}
+
+.recent-registrations {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.recent-registrations h3 {
+    color: var(--gray-800);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.registrations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.registration-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.user-role {
+    font-size: 0.8rem;
+    color: var(--primary-blue);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.registration-date {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+}
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .quick-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .models-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .activity-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    
+    .activity-content {
+        order: 1;
+    }
+    
+    .activity-actions {
+        order: 2;
+    }
+    
+    .admin-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .registration-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+}
+</style>
+
+<script>
+function viewPredictionDetails(predictionId) {
+    // Placeholder for viewing prediction details
+    alert('View prediction details for ID: ' + predictionId);
+    // You would implement a modal or redirect to a detailed view
+}
+</script>
+{% endblock %}

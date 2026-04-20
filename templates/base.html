@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Multi Cancer Detection{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="{{ url_for('home') }}" class="navbar-brand">
+                    <div class="brand-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    Multi Cancer Detection
+                </a>
+                
+                <button class="mobile-menu-toggle" type="button" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <ul class="navbar-nav" id="navbarNav">
+                    {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a></li>
+                        <li><a href="{{ url_for('predict_page') }}" class="nav-link {% if request.endpoint == 'predict_page' %}active{% endif %}">
+                            <i class="fas fa-microscope"></i> Analyze
+                        </a></li>
+                        <li><a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">
+                            <i class="fas fa-history"></i> History
+                        </a></li>
+                        <li><a href="{{ url_for('test_models') }}" class="nav-link {% if request.endpoint == 'test_models' %}active{% endif %}">
+                            <i class="fas fa-flask"></i> Test Models
+                        </a></li>
+                        {% if current_user.role == 'admin' %}
+                        <li><a href="{{ url_for('admin.admin_dashboard') }}" class="nav-link {% if request.endpoint.startswith('admin.') %}active{% endif %}">
+                            <i class="fas fa-cogs"></i> Admin
+                        </a></li>
+                        {% endif %}
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle">
+                                <i class="fas fa-user-circle"></i> {{ current_user.full_name }}
+                            </a>
+                            <div class="dropdown-menu">
+                                <a href="#" class="dropdown-link">
+                                    <i class="fas fa-user-cog"></i> Profile
+                                </a>
+                                <a href="#" class="dropdown-link">
+                                    <i class="fas fa-cog"></i> Settings
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a href="{{ url_for('logout') }}" class="dropdown-link">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </div>
+                        </li>
+                    {% else %}
+                        <li><a href="{{ url_for('home') }}" class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">
+                            <i class="fas fa-home"></i> Home
+                        </a></li>
+                        <li><a href="#features" class="nav-link">
+                            <i class="fas fa-star"></i> Features
+                        </a></li>
+                        <li><a href="#about" class="nav-link">
+                            <i class="fas fa-info-circle"></i> About
+                        </a></li>
+                        <li><a href="{{ url_for('login') }}" class="nav-link">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a></li>
+                        <li><a href="{{ url_for('register') }}" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Register
+                        </a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Flash Messages -->
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'error' if category == 'error' else category }} alert-dismissible">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-triangle{% elif category == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                        <button type="button" class="alert-close" onclick="this.parentElement.style.display='none'">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Multi Cancer Detection</h4>
+                    <p>Advanced AI-powered medical imaging analysis for multi-cancer detection using state-of-the-art deep learning techniques.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <p><a href="{{ url_for('home') }}">Home</a></p>
+                    <p><a href="#features">Features</a></p>
+                    <p><a href="#about">About Us</a></p>
+                    {% if current_user.is_authenticated %}
+                        <p><a href="{{ url_for('dashboard') }}">Dashboard</a></p>
+                        <p><a href="{{ url_for('predict_page') }}">AI Analysis</a></p>
+                    {% endif %}
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Medical Specialties</h4>
+                    <p>Brain Tumor Detection</p>
+                    <p>Lung Cancer Analysis</p>
+                    <p>Breast Cancer Screening</p>
+                    <p>Skin Cancer Detection</p>
+                    <p>Colorectal Cancer</p>
+                    <p>Liver Cancer Analysis</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contact Info</h4>
+                    <p><i class="fas fa-envelope"></i> support@medai-platform.com</p>
+                    <p><i class="fas fa-phone"></i> +1 (555) 123-4567</p>
+                    <p><i class="fas fa-map-marker-alt"></i> Medical AI Research Center</p>
+                    <p>123 Innovation Drive, Tech City</p>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 Multi Cancer Detection. All rights reserved. | 
+                   <a href="#">Privacy Policy</a> | 
+                   <a href="#">Terms of Service</a> | 
+                   <a href="#">Medical Disclaimer</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Custom JS for specific pages -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Model Training{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Admin Header -->
+    <div class="admin-header">
+        <div class="header-content">
+            <div class="admin-badge">
+                <i class="fas fa-shield-alt"></i>
+                Administrator
+            </div>
+            <h1>Model Training Dashboard</h1>
+            <p>Manage, train, and monitor enhanced cancer detection models</p>
+        </div>
+        
+        <div class="admin-actions">
+            <a href="{{ url_for('admin.backup_models') }}" class="btn btn-secondary">
+                <i class="fas fa-download"></i> Backup All Models
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Models Overview -->
+    <div class="models-grid">
+        {% for model_type, status in models_status.items() %}
+        <div class="model-card {% if status.training %}training{% elif status.exists %}trained{% else %}not-trained{% endif %}">
+            <div class="model-header">
+                <div class="model-icon">
+                    {% if model_type == 'brain' %}
+                        <i class="fas fa-brain"></i>
+                    {% elif model_type == 'lung' %}
+                        <i class="fas fa-lungs"></i>
+                    {% elif model_type == 'breast' %}
+                        <i class="fas fa-ribbon"></i>
+                    {% elif model_type == 'skin' %}
+                        <i class="fas fa-hand-paper"></i>
+                    {% elif model_type == 'colon' %}
+                        <i class="fas fa-search"></i>
+                    {% elif model_type == 'liver' %}
+                        <i class="fas fa-liver"></i>
+                    {% endif %}
+                </div>
+                <div class="model-info">
+                    <h3>{{ model_type.title() }} Cancer Detection</h3>
+                    <p class="model-status">
+                        {% if status.training %}
+                            <span class="status-badge training">
+                                <i class="fas fa-spinner fa-spin"></i> Training
+                            </span>
+                        {% elif status.exists %}
+                            <span class="status-badge trained">
+                                <i class="fas fa-check-circle"></i> {{ status.model_type_name }} Model
+                            </span>
+                        {% else %}
+                            <span class="status-badge not-trained">
+                                <i class="fas fa-exclamation-circle"></i> Not Trained
+                            </span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="model-details">
+                {% if status.exists %}
+                <div class="detail-item">
+                    <span class="label">Model Size:</span>
+                    <span class="value">{{ "%.1f"|format(status.size / (1024*1024)) }} MB</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Created:</span>
+                    <span class="value">{{ status.created.strftime('%Y-%m-%d %H:%M') if status.created else 'Unknown' }}</span>
+                </div>
+                {% if status.info %}
+                <div class="detail-item">
+                    <span class="label">Accuracy:</span>
+                    <span class="value">{{ "%.1f"|format(status.info.accuracy * 100) if status.info.accuracy else 'N/A' }}%</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Architecture:</span>
+                    <span class="value">{{ status.info.architecture[:30] + '...' if status.info.architecture and status.info.architecture|length > 30 else status.info.architecture or 'Enhanced Ensemble' }}</span>
+                </div>
+                {% endif %}
+                {% endif %}
+
+                {% if status.training %}
+                <div class="training-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ status.training_status.progress }}%"></div>
+                    </div>
+                    <div class="progress-text">
+                        {{ status.training_status.progress }}% - {{ status.training_status.status.replace('_', ' ').title() }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="model-actions">
+                {% if status.training %}
+                <a href="{{ url_for('admin.training_status', model_type=model_type) }}" class="btn btn-primary">
+                    <i class="fas fa-chart-line"></i> View Progress
+                </a>
+                <form method="post" action="{{ url_for('admin.stop_training', model_type=model_type) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Stop training?')">
+                        <i class="fas fa-stop"></i> Stop
+                    </button>
+                </form>
+                {% else %}
+                <a href="{{ url_for('admin.train_model', model_type=model_type) }}" class="btn btn-primary">
+                    <i class="fas fa-play"></i> 
+                    {% if status.exists %}Retrain{% else %}Train{% endif %}
+                </a>
+                {% if status.exists %}
+                <form method="post" action="{{ url_for('admin.delete_model', model_type=model_type) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this model? This action cannot be undone.')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </form>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Training Information -->
+    <div class="training-info-section">
+        <h2><i class="fas fa-info-circle"></i> Enhanced Model Training</h2>
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-header">
+                    <i class="fas fa-network-wired"></i>
+                    <h3>Architecture</h3>
+                </div>
+                <ul>
+                    <li><strong>Vision Transformer (ViT):</strong> State-of-the-art attention mechanism</li>
+                    <li><strong>InceptionV3:</strong> Pre-trained CNN for feature extraction</li>
+                    <li><strong>Custom CNN:</strong> Specialized medical image analysis</li>
+                    <li><strong>Ensemble Fusion:</strong> Combines all models for best accuracy</li>
+                </ul>
+            </div>
+
+            <div class="info-card">
+                <div class="info-header">
+                    <i class="fas fa-brain"></i>
+                    <h3>Knowledge Retention</h3>
+                </div>
+                <ul>
+                    <li><strong>Elastic Weight Consolidation (EWC):</strong> Prevents forgetting</li>
+                    <li><strong>Learning without Forgetting (LwF):</strong> Maintains old knowledge</li>
+                    <li><strong>Fisher Information:</strong> Identifies important weights</li>
+                    <li><strong>Progressive Learning:</strong> Builds upon previous training</li>
+                </ul>
+            </div>
+
+            <div class="info-card">
+                <div class="info-header">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Training Features</h3>
+                </div>
+                <ul>
+                    <li><strong>Automatic Backup:</strong> Existing models are preserved</li>
+                    <li><strong>Real-time Monitoring:</strong> Live training progress</li>
+                    <li><strong>Data Augmentation:</strong> Improves model robustness</li>
+                    <li><strong>Early Stopping:</strong> Prevents overfitting</li>
+                </ul>
+            </div>
+
+            <div class="info-card">
+                <div class="info-header">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>Model Management</h3>
+                </div>
+                <ul>
+                    <li><strong>Version Control:</strong> Track model iterations</li>
+                    <li><strong>Performance Metrics:</strong> Accuracy, precision, recall</li>
+                    <li><strong>Automatic Backup:</strong> Before retraining</li>
+                    <li><strong>Safe Deployment:</strong> Test before production use</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #1e40af 0%, #0891b2 100%);
+    border-radius: 16px;
+    color: white;
+}
+
+.admin-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.models-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.model-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.model-card.trained {
+    border-color: #22c55e;
+}
+
+.model-card.training {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(8, 145, 178, 0.05) 100%);
+}
+
+.model-card.not-trained {
+    border-color: #f59e0b;
+}
+
+.model-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.model-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.model-info h3 {
+    margin: 0 0 8px 0;
+    color: #1f2937;
+    font-size: 18px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-badge.trained {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.training {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.status-badge.not-trained {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.model-details {
+    margin-bottom: 20px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.detail-item .label {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.detail-item .value {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.training-progress {
+    margin: 16px 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+    text-align: center;
+}
+
+.model-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.training-info-section {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.training-info-section h2 {
+    color: #1f2937;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.info-card {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 20px;
+    border-left: 4px solid #3b82f6;
+}
+
+.info-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.info-header h3 {
+    color: #1f2937;
+    margin: 0;
+    font-size: 16px;
+}
+
+.info-header i {
+    color: #3b82f6;
+}
+
+.info-card ul {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+}
+
+.info-card li {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #4b5563;
+    padding-left: 16px;
+    position: relative;
+}
+
+.info-card li::before {
+    content: '•';
+    color: #3b82f6;
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .admin-header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+    
+    .models-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,865 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis History - Multi Cancer Detection{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-history"></i> Analysis History</h1>
+            <p>Review your previous AI-powered medical image analyses</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('predict_page') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Analysis
+            </a>
+            <button class="btn btn-outline" onclick="exportHistory()">
+                <i class="fas fa-download"></i> Export Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="filters-section">
+        <div class="search-container">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search by model type or result..." id="searchInput">
+            </div>
+        </div>
+        
+        <div class="filter-controls">
+            <select class="filter-select" id="modelFilter">
+                <option value="">All Models</option>
+                {% for model_key, model_info in cancer_models.items() %}
+                <option value="{{ model_key }}">{{ model_info.name }}</option>
+                {% endfor %}
+            </select>
+            
+            <select class="filter-select" id="dateFilter">
+                <option value="">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+            </select>
+            
+            <button class="btn btn-outline btn-sm" onclick="clearFilters()">
+                <i class="fas fa-times"></i> Clear
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Summary -->
+    <div class="history-stats">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-number">{{ predictions.total }}</span>
+                <span class="stat-label">Total Analyses</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-number">{{ cancer_models|length }}</span>
+                <span class="stat-label">Models Used</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-calendar"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-number">{{ predictions.items|length if predictions.items else 0 }}</span>
+                <span class="stat-label">This Page</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="history-section">
+        {% if predictions.items %}
+        <div class="history-table-container">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Model Used</th>
+                        <th>Analysis Result</th>
+                        <th>Confidence</th>
+                        <th>Processing Time</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prediction in predictions.items %}
+                    <tr class="history-row" data-model="{{ prediction.model_type }}" data-date="{{ prediction.created_at.isoformat() }}">
+                        <td class="date-cell">
+                            <div class="date-time">
+                                <span class="date">{{ prediction.created_at.strftime('%b %d, %Y') }}</span>
+                                <span class="time">{{ prediction.created_at.strftime('%I:%M %p') }}</span>
+                            </div>
+                        </td>
+                        
+                        <td class="model-cell">
+                            <div class="model-info">
+                                <div class="model-icon">
+                                    {% if prediction.model_type == 'brain' %}
+                                        <i class="fas fa-brain"></i>
+                                    {% elif prediction.model_type == 'lung' %}
+                                        <i class="fas fa-lungs"></i>
+                                    {% elif prediction.model_type == 'breast' %}
+                                        <i class="fas fa-ribbon"></i>
+                                    {% elif prediction.model_type == 'skin' %}
+                                        <i class="fas fa-hand-paper"></i>
+                                    {% elif prediction.model_type == 'colon' %}
+                                        <i class="fas fa-search"></i>
+                                    {% elif prediction.model_type == 'liver' %}
+                                        <i class="fas fa-liver"></i>
+                                    {% else %}
+                                        <i class="fas fa-microscope"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="model-name">
+                                    <span class="model-title">{{ cancer_models[prediction.model_type].name }}</span>
+                                    <span class="model-type">{{ prediction.model_type|title }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="result-cell">
+                            <div class="result-badge {% if 'cancer' in prediction.prediction_result.lower() or 'malignant' in prediction.prediction_result.lower() %}warning{% else %}success{% endif %}">
+                                <span class="result-text">{{ prediction.prediction_result }}</span>
+                            </div>
+                        </td>
+                        
+                        <td class="confidence-cell">
+                            {% if prediction.confidence_score %}
+                            <div class="confidence-display">
+                                <div class="confidence-bar-mini">
+                                    <div class="confidence-fill-mini" style="width: {{ (prediction.confidence_score * 100) }}%"></div>
+                                </div>
+                                <span class="confidence-text">{{ "%.1f"|format(prediction.confidence_score * 100) }}%</span>
+                            </div>
+                            {% else %}
+                            <span class="no-data">N/A</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="processing-cell">
+                            {% if prediction.processing_time %}
+                                <span class="processing-time">{{ "%.2f"|format(prediction.processing_time) }}s</span>
+                            {% else %}
+                                <span class="no-data">N/A</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="actions-cell">
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-outline" onclick="viewPrediction({{ prediction.id }})" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline" onclick="downloadPrediction({{ prediction.id }})" title="Download Report">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline btn-danger" onclick="deletePrediction({{ prediction.id }})" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-section">
+            <div class="pagination-info">
+                Showing {{ predictions.items|length }} of {{ predictions.total }} results
+            </div>
+            
+            <div class="pagination">
+                {% if predictions.has_prev %}
+                    <a href="{{ url_for('history', page=predictions.prev_num) }}" class="pagination-btn">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </a>
+                {% endif %}
+                
+                <div class="pagination-numbers">
+                    {% for page_num in predictions.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != predictions.page %}
+                                <a href="{{ url_for('history', page=page_num) }}" class="pagination-number">{{ page_num }}</a>
+                            {% else %}
+                                <span class="pagination-number active">{{ page_num }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="pagination-ellipsis">...</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                
+                {% if predictions.has_next %}
+                    <a href="{{ url_for('history', page=predictions.next_num) }}" class="pagination-btn">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- Empty State -->
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-history"></i>
+            </div>
+            <h3>No Analysis History Found</h3>
+            <p>You haven't performed any AI analyses yet. Start by uploading your first medical image.</p>
+            <a href="{{ url_for('predict_page') }}" class="btn btn-primary">
+                <i class="fas fa-upload"></i> Start First Analysis
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Prediction Details Modal -->
+<div id="predictionModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4>Analysis Details</h4>
+            <button class="modal-close" onclick="closePredictionModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="modalContent">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.header-content h1 {
+    color: var(--gray-800);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-content p {
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.filters-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.search-container {
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box i {
+    position: absolute;
+    left: 1rem;
+    color: var(--gray-400);
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    transition: border-color var(--transition-fast);
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+}
+
+.filter-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.filter-select {
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    background: var(--white);
+    font-size: 0.9rem;
+    min-width: 150px;
+}
+
+.history-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-left: 4px solid var(--primary-blue);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-size: 1.2rem;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    line-height: 1;
+}
+
+.stat-label {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.history-section {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.history-table-container {
+    overflow-x: auto;
+    margin-bottom: 2rem;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.history-table th {
+    background: var(--gray-50);
+    color: var(--gray-700);
+    font-weight: 600;
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 2px solid var(--gray-200);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: middle;
+}
+
+.history-row:hover {
+    background: var(--gray-50);
+}
+
+.date-time {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.date {
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 0.9rem;
+}
+
+.time {
+    color: var(--gray-500);
+    font-size: 0.8rem;
+}
+
+.model-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.model-icon {
+    width: 35px;
+    height: 35px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-size: 1rem;
+}
+
+.model-name {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.model-title {
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 0.9rem;
+}
+
+.model-type {
+    color: var(--gray-500);
+    font-size: 0.8rem;
+    text-transform: capitalize;
+}
+
+.result-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.result-badge.success {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success-color);
+}
+
+.result-badge.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+.confidence-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.confidence-bar-mini {
+    width: 60px;
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.confidence-fill-mini {
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+}
+
+.confidence-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.processing-time {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.no-data {
+    color: var(--gray-400);
+    font-style: italic;
+    font-size: 0.8rem;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    min-width: auto;
+}
+
+.btn-danger {
+    border-color: var(--error-color);
+    color: var(--error-color);
+}
+
+.btn-danger:hover {
+    background: var(--error-color);
+    color: var(--white);
+}
+
+.pagination-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 2rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.pagination-info {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pagination-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.5rem 1rem;
+    background: var(--white);
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    color: var(--gray-700);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all var(--transition-fast);
+}
+
+.pagination-btn:hover {
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+    text-decoration: none;
+}
+
+.pagination-numbers {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.pagination-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
+    background: var(--white);
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    color: var(--gray-700);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all var(--transition-fast);
+}
+
+.pagination-number:hover {
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+    text-decoration: none;
+}
+
+.pagination-number.active {
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+    color: var(--white);
+}
+
+.pagination-ellipsis {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
+    color: var(--gray-400);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-icon {
+    width: 100px;
+    height: 100px;
+    background: var(--gray-100);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 2rem;
+    color: var(--gray-400);
+    font-size: 3rem;
+}
+
+.empty-state h3 {
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    color: var(--gray-500);
+    margin-bottom: 2rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background: var(--white);
+    margin: 2% auto;
+    border-radius: var(--radius-xl);
+    max-width: 90%;
+    max-height: 90%;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.modal-header h4 {
+    margin: 0;
+    color: var(--gray-800);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--gray-600);
+    transition: color var(--transition-fast);
+}
+
+.modal-close:hover {
+    color: var(--gray-800);
+}
+
+.modal-body {
+    padding: 2rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .filters-section {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .filter-controls {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .filter-select {
+        width: 100%;
+    }
+    
+    .history-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .history-table {
+        font-size: 0.8rem;
+    }
+    
+    .history-table th,
+    .history-table td {
+        padding: 0.5rem;
+    }
+    
+    .pagination-section {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+// Search functionality
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('.history-row');
+    
+    rows.forEach(row => {
+        const modelText = row.querySelector('.model-title').textContent.toLowerCase();
+        const resultText = row.querySelector('.result-text').textContent.toLowerCase();
+        
+        if (modelText.includes(searchTerm) || resultText.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Filter functionality
+document.getElementById('modelFilter').addEventListener('change', function(e) {
+    const selectedModel = e.target.value;
+    const rows = document.querySelectorAll('.history-row');
+    
+    rows.forEach(row => {
+        const modelType = row.getAttribute('data-model');
+        
+        if (!selectedModel || modelType === selectedModel) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('modelFilter').value = '';
+    document.getElementById('dateFilter').value = '';
+    
+    const rows = document.querySelectorAll('.history-row');
+    rows.forEach(row => row.style.display = '');
+}
+
+function viewPrediction(predictionId) {
+    // Implement view prediction details
+    document.getElementById('modalContent').innerHTML = `
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i> Loading...
+        </div>
+    `;
+    document.getElementById('predictionModal').style.display = 'block';
+    
+    // Simulate loading prediction details
+    setTimeout(() => {
+        document.getElementById('modalContent').innerHTML = `
+            <h5>Prediction Details</h5>
+            <p>Detailed information for prediction ID: ${predictionId}</p>
+            <p>This would show the full analysis results, images, and recommendations.</p>
+        `;
+    }, 1000);
+}
+
+function downloadPrediction(predictionId) {
+    alert(`Download report for prediction ID: ${predictionId}`);
+    // Implement download functionality
+}
+
+function deletePrediction(predictionId) {
+    if (confirm('Are you sure you want to delete this analysis? This action cannot be undone.')) {
+        alert(`Delete prediction ID: ${predictionId}`);
+        // Implement delete functionality
+    }
+}
+
+function exportHistory() {
+    alert('Export history functionality will be implemented');
+    // Implement export functionality
+}
+
+function closePredictionModal() {
+    document.getElementById('predictionModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('predictionModal');
+    if (event.target === modal) {
+        closePredictionModal();
+    }
+}
+</script>
+{% endblock %}

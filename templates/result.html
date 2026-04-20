@@ -1,0 +1,915 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - {{ model_info.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Results Header -->
+    <div class="results-header">
+        <div class="header-content">
+            <div class="model-badge">
+                {% if 'brain' in model_info.name.lower() %}
+                    <i class="fas fa-brain"></i>
+                {% elif 'lung' in model_info.name.lower() %}
+                    <i class="fas fa-lungs"></i>
+                {% elif 'breast' in model_info.name.lower() %}
+                    <i class="fas fa-ribbon"></i>
+                {% elif 'skin' in model_info.name.lower() %}
+                    <i class="fas fa-hand-paper"></i>
+                {% elif 'colon' in model_info.name.lower() %}
+                    <i class="fas fa-search"></i>
+                {% elif 'liver' in model_info.name.lower() %}
+                    <i class="fas fa-liver"></i>
+                {% else %}
+                    <i class="fas fa-microscope"></i>
+                {% endif %}
+                {{ model_info.name }}
+            </div>
+            <h1>AI Analysis Complete</h1>
+            <p>Your medical image has been analyzed using our advanced deep learning model</p>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="{{ url_for('predict_page') }}" class="btn btn-outline">
+                <i class="fas fa-plus"></i> New Analysis
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Results -->
+    <div class="results-main">
+        <!-- Prediction Result Card -->
+        <div class="result-card primary-result">
+            <div class="result-header">
+                <div class="result-icon {% if 'cancer' in prediction.lower() or 'malignant' in prediction.lower() %}warning{% else %}success{% endif %}">
+                    {% if 'cancer' in prediction.lower() or 'malignant' in prediction.lower() %}
+                        <i class="fas fa-exclamation-triangle"></i>
+                    {% else %}
+                        <i class="fas fa-check-circle"></i>
+                    {% endif %}
+                </div>
+                <h2>Detection Result</h2>
+            </div>
+            
+            <div class="result-content">
+                <div class="prediction-result">
+                    <span class="prediction-label">Classification:</span>
+                    <span class="prediction-value">{{ prediction }}</span>
+                </div>
+                
+                {% if confidence %}
+                <div class="confidence-section">
+                    <div class="confidence-label">Confidence Score</div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: {{ (confidence * 100) }}%"></div>
+                        <span class="confidence-percentage">{{ "%.1f"|format(confidence * 100) }}%</span>
+                    </div>
+                    <div class="confidence-interpretation">
+                        {% if confidence >= 0.9 %}
+                            <span class="confidence-high">Very High Confidence</span>
+                        {% elif confidence >= 0.75 %}
+                            <span class="confidence-good">High Confidence</span>
+                        {% elif confidence >= 0.6 %}
+                            <span class="confidence-medium">Medium Confidence</span>
+                        {% else %}
+                            <span class="confidence-low">Low Confidence</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Enhanced Model Information -->
+                {% if enhanced_mode and enhanced_model_info %}
+                <div class="enhanced-model-section">
+                    <div class="enhanced-header">
+                        <i class="fas fa-robot"></i>
+                        <span class="enhanced-badge">Enhanced AI Analysis</span>
+                    </div>
+                    
+                    <div class="model-architecture">
+                        <h4><i class="fas fa-network-wired"></i> Model Architecture</h4>
+                        <div class="architecture-details">
+                            <span class="architecture-tag">{{ enhanced_model_info.architecture }}</span>
+                            {% if enhanced_model_info.knowledge_retention %}
+                            <span class="feature-tag">
+                                <i class="fas fa-brain"></i> Knowledge Retention
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if enhanced_model_info.get('individual_models') %}
+                    <div class="model-agreement">
+                        <h4><i class="fas fa-check-double"></i> Model Agreement</h4>
+                        <div class="agreement-score">
+                            Agreement Score: {{ "%.1f"|format(enhanced_model_info.agreement_score * 100) }}%
+                        </div>
+                        <div class="individual-predictions">
+                            <div class="pred-item">
+                                <span class="model-name">Vision Transformer:</span>
+                                <span class="pred-result">{{ enhanced_model_info.individual_models.vit }}</span>
+                            </div>
+                            <div class="pred-item">
+                                <span class="model-name">InceptionV3:</span>
+                                <span class="pred-result">{{ enhanced_model_info.individual_models.inception }}</span>
+                            </div>
+                            <div class="pred-item">
+                                <span class="model-name">CNN:</span>
+                                <span class="pred-result">{{ enhanced_model_info.individual_models.cnn }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if enhanced_model_info.get('uncertainty_metrics') %}
+                    <div class="uncertainty-metrics">
+                        <h4><i class="fas fa-chart-line"></i> Prediction Metrics</h4>
+                        <div class="metrics-grid">
+                            <div class="metric-item">
+                                <span class="metric-label">Prediction Entropy:</span>
+                                <span class="metric-value">{{ "%.3f"|format(enhanced_model_info.uncertainty_metrics.entropy) }}</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">Normalized Uncertainty:</span>
+                                <span class="metric-value">{{ "%.1f"|format(enhanced_model_info.uncertainty_metrics.normalized_entropy * 100) }}%</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">Raw Confidence:</span>
+                                <span class="metric-value">{{ "%.1f"|format(enhanced_model_info.raw_confidence * 100) }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                {% if processing_time %}
+                <div class="processing-info">
+                    <div class="processing-time">
+                        <i class="fas fa-clock"></i>
+                        Processing Time: {{ "%.2f"|format(processing_time) }} seconds
+                    </div>
+                    <div class="model-accuracy">
+                        <i class="fas fa-chart-line"></i>
+                        Model Accuracy: 95%+
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Image Analysis Grid -->
+        <div class="image-analysis">
+            <div class="image-card">
+                <div class="image-header">
+                    <h3><i class="fas fa-image"></i> Original Image</h3>
+                    <p>Your uploaded medical image</p>
+                </div>
+                <div class="image-container">
+                    <img src="data:image/png;base64,{{ original_img }}" 
+                         alt="Original Medical Image" 
+                         class="analysis-image">
+                    <div class="image-overlay">
+                        <button class="zoom-btn" onclick="openImageModal('original')">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="image-card">
+                <div class="image-header">
+                    <h3><i class="fas fa-eye"></i> Processed Analysis</h3>
+                    <p>AI-enhanced visualization</p>
+                </div>
+                <div class="image-container">
+                    <img src="data:image/png;base64,{{ segmented_img }}" 
+                         alt="Segmented Image" 
+                         class="analysis-image">
+                    <div class="image-overlay">
+                        <button class="zoom-btn" onclick="openImageModal('segmented')">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="image-card">
+                <div class="image-header">
+                    <h3><i class="fas fa-mask"></i> Detection Mask</h3>
+                    <p>Areas of interest highlighted</p>
+                </div>
+                <div class="image-container">
+                    <img src="data:image/png;base64,{{ mask_img }}" 
+                         alt="Detection Mask" 
+                         class="analysis-image">
+                    <div class="image-overlay">
+                        <button class="zoom-btn" onclick="openImageModal('mask')">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Summary -->
+        <div class="analysis-summary">
+            <h3><i class="fas fa-clipboard-list"></i> Analysis Summary</h3>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">Model Used</div>
+                    <div class="summary-value">{{ model_info.name }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Detection Type</div>
+                    <div class="summary-value">{{ prediction }}</div>
+                </div>
+                {% if confidence %}
+                <div class="summary-item">
+                    <div class="summary-label">Confidence</div>
+                    <div class="summary-value">{{ "%.1f"|format(confidence * 100) }}%</div>
+                </div>
+                {% endif %}
+                <div class="summary-item">
+                    <div class="summary-label">Analysis Date</div>
+                    <div class="summary-value">{{ analysis_date.strftime('%B %d, %Y') if analysis_date else 'Today' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="recommendations">
+            <h3><i class="fas fa-lightbulb"></i> Clinical Recommendations</h3>
+            <div class="recommendation-content">
+                {% if 'cancer' in prediction.lower() or 'malignant' in prediction.lower() %}
+                    <div class="recommendation-item urgent">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>Urgent Follow-up Recommended:</strong>
+                            <p>This analysis suggests the presence of potentially malignant tissue. Immediate consultation with an oncology specialist is strongly recommended for further evaluation and potential biopsy.</p>
+                        </div>
+                    </div>
+                {% elif 'benign' in prediction.lower() or 'normal' in prediction.lower() %}
+                    <div class="recommendation-item normal">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong>Normal Findings:</strong>
+                            <p>The analysis indicates normal tissue patterns. Continue with regular screening protocols as recommended by healthcare guidelines.</p>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="recommendation-item caution">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>Further Evaluation Needed:</strong>
+                            <p>The analysis shows findings that require additional evaluation. Consult with a healthcare professional for proper interpretation and next steps.</p>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                <div class="recommendation-item general">
+                    <i class="fas fa-user-md"></i>
+                    <div>
+                        <strong>Professional Consultation:</strong>
+                        <p>All AI analysis results should be reviewed by qualified medical professionals. This tool is designed to assist, not replace, professional medical judgment.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="result-actions">
+            <button class="btn btn-primary" onclick="downloadReport()">
+                <i class="fas fa-download"></i> Download Report
+            </button>
+            <button class="btn btn-outline" onclick="shareResults()">
+                <i class="fas fa-share"></i> Share Results
+            </button>
+            <button class="btn btn-secondary" onclick="saveToHistory()">
+                <i class="fas fa-bookmark"></i> Save to History
+            </button>
+        </div>
+    </div>
+
+    <!-- Medical Disclaimer -->
+    <div class="medical-disclaimer">
+        <div class="disclaimer-content">
+            <div class="disclaimer-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="disclaimer-text">
+                <h4>Important Medical Disclaimer</h4>
+                <p>This AI analysis is for research and educational purposes only. Results should not be used as the sole basis for medical diagnosis or treatment decisions. Always consult with qualified healthcare professionals for medical advice, diagnosis, and treatment.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4 id="modalTitle">Image View</h4>
+            <button class="modal-close" onclick="closeImageModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <img id="modalImage" src="" alt="Full Size Image">
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.header-content {
+    flex: 1;
+}
+
+.model-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--gradient-primary);
+    color: var(--white);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.results-header h1 {
+    margin-bottom: 0.5rem;
+    color: var(--gray-800);
+}
+
+.results-header p {
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.results-main {
+    display: grid;
+    gap: 2rem;
+}
+
+.result-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.primary-result {
+    border-left: 4px solid var(--primary-blue);
+}
+
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.result-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--white);
+}
+
+.result-icon.success {
+    background: var(--success-color);
+}
+
+.result-icon.warning {
+    background: var(--warning-color);
+}
+
+.result-header h2 {
+    color: var(--gray-800);
+    margin: 0;
+}
+
+.prediction-result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    margin-bottom: 2rem;
+}
+
+.prediction-label {
+    font-weight: 600;
+    color: var(--gray-700);
+    font-size: 1.1rem;
+}
+
+.prediction-value {
+    font-weight: 700;
+    color: var(--primary-blue);
+    font-size: 1.3rem;
+}
+
+.confidence-section {
+    margin-bottom: 2rem;
+}
+
+.confidence-label {
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 1rem;
+}
+
+.confidence-bar {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    background: var(--gray-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    transition: width var(--transition-normal);
+}
+
+.confidence-percentage {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    color: var(--white);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.confidence-interpretation {
+    text-align: center;
+}
+
+.confidence-high { color: var(--success-color); font-weight: 600; }
+.confidence-good { color: var(--medical-green); font-weight: 600; }
+.confidence-medium { color: var(--warning-color); font-weight: 600; }
+.confidence-low { color: var(--error-color); font-weight: 600; }
+
+.processing-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+}
+
+.processing-time,
+.model-accuracy {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.processing-time i,
+.model-accuracy i {
+    color: var(--primary-blue);
+}
+
+.image-analysis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.image-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-normal);
+}
+
+.image-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.image-header {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.image-header h3 {
+    color: var(--gray-800);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.image-header p {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.image-container {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.analysis-image {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+}
+
+.image-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.image-container:hover .image-overlay {
+    opacity: 1;
+}
+
+.zoom-btn {
+    background: var(--white);
+    border: none;
+    border-radius: var(--radius-full);
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.zoom-btn:hover {
+    background: var(--primary-blue);
+    color: var(--white);
+}
+
+.analysis-summary {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.analysis-summary h3 {
+    color: var(--gray-800);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.summary-item {
+    text-align: center;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+}
+
+.summary-label {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-value {
+    color: var(--gray-800);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.recommendations {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.recommendations h3 {
+    color: var(--gray-800);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.recommendation-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 1rem;
+    align-items: flex-start;
+}
+
+.recommendation-item:last-child {
+    margin-bottom: 0;
+}
+
+.recommendation-item.urgent {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 4px solid var(--error-color);
+}
+
+.recommendation-item.normal {
+    background: rgba(34, 197, 94, 0.1);
+    border-left: 4px solid var(--success-color);
+}
+
+.recommendation-item.caution {
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 4px solid var(--warning-color);
+}
+
+.recommendation-item.general {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid var(--info-color);
+}
+
+.recommendation-item i {
+    font-size: 1.2rem;
+    margin-top: 0.2rem;
+}
+
+.recommendation-item.urgent i { color: var(--error-color); }
+.recommendation-item.normal i { color: var(--success-color); }
+.recommendation-item.caution i { color: var(--warning-color); }
+.recommendation-item.general i { color: var(--info-color); }
+
+.recommendation-item strong {
+    color: var(--gray-800);
+}
+
+.recommendation-item p {
+    color: var(--gray-700);
+    margin: 0.5rem 0 0 0;
+    line-height: 1.5;
+}
+
+.result-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem 0;
+}
+
+.medical-disclaimer {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    border-left: 4px solid var(--warning-color);
+}
+
+.disclaimer-content {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.disclaimer-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--warning-color);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.disclaimer-text h4 {
+    color: var(--gray-800);
+    margin-bottom: 0.5rem;
+}
+
+.disclaimer-text p {
+    color: var(--gray-700);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+    background: var(--white);
+    margin: 2% auto;
+    border-radius: var(--radius-xl);
+    max-width: 90%;
+    max-height: 90%;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.modal-header h4 {
+    margin: 0;
+    color: var(--gray-800);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--gray-600);
+    transition: color var(--transition-fast);
+}
+
+.modal-close:hover {
+    color: var(--gray-800);
+}
+
+.modal-body {
+    padding: 2rem;
+    text-align: center;
+}
+
+.modal-body img {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: var(--radius-lg);
+}
+
+@media (max-width: 768px) {
+    .results-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .image-analysis {
+        grid-template-columns: 1fr;
+    }
+    
+    .summary-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .processing-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .result-actions {
+        flex-direction: column;
+    }
+    
+    .disclaimer-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .prediction-result {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+}
+</style>
+
+<script>
+function openImageModal(imageType) {
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const modalTitle = document.getElementById('modalTitle');
+    
+    let imageSrc, title;
+    
+    switch(imageType) {
+        case 'original':
+            imageSrc = 'data:image/png;base64,{{ original_img }}';
+            title = 'Original Medical Image';
+            break;
+        case 'segmented':
+            imageSrc = 'data:image/png;base64,{{ segmented_img }}';
+            title = 'AI-Processed Image';
+            break;
+        case 'mask':
+            imageSrc = 'data:image/png;base64,{{ mask_img }}';
+            title = 'Detection Mask';
+            break;
+    }
+    
+    modalImage.src = imageSrc;
+    modalTitle.textContent = title;
+    modal.style.display = 'block';
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').style.display = 'none';
+}
+
+function downloadReport() {
+    // Implement report download functionality
+    alert('Report download feature will be implemented');
+}
+
+function shareResults() {
+    // Implement sharing functionality
+    alert('Share results feature will be implemented');
+}
+
+function saveToHistory() {
+    // This is automatically saved to database
+    alert('Results have been saved to your history');
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('imageModal');
+    if (event.target === modal) {
+        closeImageModal();
+    }
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeImageModal();
+    }
+});
+</script>
+{% endblock %}
